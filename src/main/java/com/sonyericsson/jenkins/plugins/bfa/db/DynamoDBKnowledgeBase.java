@@ -4,11 +4,14 @@ import com.amazonaws.regions.Region;
 import com.amazonaws.regions.RegionUtils;
 import com.amazonaws.regions.Regions;
 import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBMapper;
+import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBQueryExpression;
 import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBScanExpression;
+import com.amazonaws.services.dynamodbv2.datamodeling.PaginatedQueryList;
 import com.amazonaws.services.dynamodbv2.model.Condition;
 import com.amazonaws.services.dynamodbv2.model.CreateTableRequest;
 import com.amazonaws.services.dynamodbv2.model.ProvisionedThroughput;
 import com.amazonaws.services.dynamodbv2.util.TableUtils;
+import com.sonyericsson.jenkins.plugins.bfa.graphs.GraphFilterBuilder;
 import com.sonyericsson.jenkins.plugins.bfa.model.FailureCause;
 import com.sonyericsson.jenkins.plugins.bfa.Messages;
 import com.sonyericsson.jenkins.plugins.bfa.statistics.Statistics;
@@ -49,6 +52,7 @@ public class DynamoDBKnowledgeBase extends KnowledgeBase {
 
     private static AmazonDynamoDB dynamoDB;
     private DynamoDBMapper dbMapper;
+    private DynamoDBKnowledgeBaseStatsManager statsManager;
 
     private String region;
     private String credentialsPath;
@@ -110,10 +114,11 @@ public class DynamoDBKnowledgeBase extends KnowledgeBase {
      */
     // TODO: 4/19/18 Add caching here
     @Override
-    public Collection<FailureCause> getCauses() throws UnsupportedOperationException {
-        DynamoDBScanExpression scan = new DynamoDBScanExpression();
-        scan.setScanFilter(NOT_REMOVED_FILTER_EXPRESSION);
-        return getDbMapper().scan(FailureCause.class, scan);
+    public PaginatedQueryList getCauses() throws UnsupportedOperationException {
+        DynamoDBQueryExpression queryEx = new DynamoDBQueryExpression<>();
+        queryEx.setQueryFilter(NOT_REMOVED_FILTER_EXPRESSION);
+        queryEx.setScanIndexForward(false);
+        return getDbMapper().query(FailureCause.class, queryEx);
     }
 
     /**
@@ -366,7 +371,7 @@ public class DynamoDBKnowledgeBase extends KnowledgeBase {
     // TODO: 4/19/18 Implement this
     @Override
     public void saveStatistics(Statistics stat) throws Exception {
-
+        getStatsManager().saveStatistics(stat);
     }
 
     /**
@@ -409,8 +414,18 @@ public class DynamoDBKnowledgeBase extends KnowledgeBase {
         }
         dbMapper = new DynamoDBMapper(getDynamoDb());
         createTable(dbMapper.generateCreateTableRequest(FailureCause.class));
+        createTable(dbMapper.generateCreateTableRequest(Statistics.class));
 
         return dbMapper;
+    }
+
+    private DynamoDBKnowledgeBaseStatsManager getStatsManager() {
+        if (statsManager != null) {
+            return statsManager;
+        }
+
+        statsManager = new DynamoDBKnowledgeBaseStatsManager(this);
+        return statsManager;
     }
 
     /**
@@ -541,5 +556,20 @@ public class DynamoDBKnowledgeBase extends KnowledgeBase {
             }
             return FormValidation.ok(Messages.DynamoDBKnowledgeBase_ConnectionOK());
         }
+    }
+
+    public static class DynamoDBKnowledgeBaseStatsManager {
+        private DynamoDBKnowledgeBase kb;
+
+        public DynamoDBKnowledgeBaseStatsManager(DynamoDBKnowledgeBase parent) {
+            this.kb = parent;
+        }
+
+        public void saveStatistics(Statistics stat) throws UnsupportedOperationException {
+            kb.getDbMapper().save(stat);
+        }
+
+//        public List<Statistics> getStatistics(GraphFilterBuilder filter, int limit) {
+//        }
     }
 }

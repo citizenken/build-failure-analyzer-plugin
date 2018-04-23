@@ -77,7 +77,7 @@ import static org.powermock.api.mockito.PowerMockito.doNothing;
  */
 @RunWith(PowerMockRunner.class)
 @PowerMockIgnore({"javax.*"})
-@PrepareForTest({DynamoDBKnowledgeBase.class, Jenkins.class, Jenkins.DescriptorImpl.class})
+@PrepareForTest({ Jenkins.class, Jenkins.DescriptorImpl.class})
 public class DynamoDBKnowledgeBaseTest {
 
     @Mock
@@ -109,9 +109,9 @@ public class DynamoDBKnowledgeBaseTest {
 
         // Mock DynamoDB and DBMapper
         kb = PowerMockito.spy(new DynamoDBKnowledgeBase("", "", "default"));
-        db = mock(AmazonDynamoDB.class);
-        dbMapper = spy(new DynamoDBMapper(db));
-        PowerMockito.doReturn(dbMapper).when(kb, "getDbMapper");
+//        db = mock(AmazonDynamoDB.class);
+//        dbMapper = spy(new DynamoDBMapper(db));
+//        PowerMockito.doReturn(dbMapper).when(kb, "getDbMapper");
 
         indications = new LinkedList<Indication>();
         indication = new BuildLogIndication("something");
@@ -324,5 +324,22 @@ public class DynamoDBKnowledgeBaseTest {
         doReturn(createFailureCause("foo")).when(kb).saveCause(Matchers.any(FailureCause.class));
         kb.convertFrom(localKb);
         Mockito.verify(kb, Mockito.times(MAX_ITERATIONS)).saveCause(Matchers.any(FailureCause.class));
+    }
+
+    /**
+     * Tests fetching statistics.
+     *
+     * @throws Exception if unable to fetch statistics.
+     */
+    @Test
+    public void testGetStatistics() throws Exception {
+//        Statistics.UpstreamCause  upstream = new Statistics.UpstreamCause("foo", 1);
+//        Statistics stat = new Statistics("projectName", 1, "", null,
+//                1, null, "nodeName", "master", 0, "result",
+//                upstream, null);
+//        kb.saveStatistics(stat);
+        Collection<FailureCause> fcs = kb.getCauses();
+        System.out.println(fcs);
+
     }
 }
