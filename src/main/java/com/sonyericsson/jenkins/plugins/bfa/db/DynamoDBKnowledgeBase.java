@@ -114,11 +114,10 @@ public class DynamoDBKnowledgeBase extends KnowledgeBase {
      */
     // TODO: 4/19/18 Add caching here
     @Override
-    public PaginatedQueryList getCauses() throws UnsupportedOperationException {
-        DynamoDBQueryExpression queryEx = new DynamoDBQueryExpression<>();
-        queryEx.setQueryFilter(NOT_REMOVED_FILTER_EXPRESSION);
-        queryEx.setScanIndexForward(false);
-        return getDbMapper().query(FailureCause.class, queryEx);
+    public Collection<FailureCause> getCauses() throws UnsupportedOperationException {
+        DynamoDBScanExpression scan = new DynamoDBScanExpression();
+        scan.setScanFilter(NOT_REMOVED_FILTER_EXPRESSION);
+        return getDbMapper().scan(FailureCause.class, scan);
     }
 
     /**
@@ -437,7 +436,7 @@ public class DynamoDBKnowledgeBase extends KnowledgeBase {
             String tableName = request.getTableName();
             AmazonDynamoDB db = getDynamoDb();
             request.setProvisionedThroughput(new ProvisionedThroughput()
-                    .withReadCapacityUnits(1L).withWriteCapacityUnits(1L));
+                    .withReadCapacityUnits(5L).withWriteCapacityUnits(5L));
             TableUtils.createTableIfNotExists(db, request);
             TableUtils.waitUntilActive(db, tableName);
 
